@@ -1,70 +1,62 @@
-# Getting Started with Create React App
+# 👁️ VIZHITHIRU - Accessible Travel Assistant
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![Vizhithiru Logo](src/logo.png)
 
-## Available Scripts
+> **✨ Empowering Every Journey ✨**
 
-In the project directory, you can run:
+## 📖 About The Project
+**VIZHITHIRU** (Tamil for "Stay Awake/Aware") is a comprehensive web application designed to assist **visually impaired and differently-abled individuals** in navigating the world independently and safely. 
 
-### `npm start`
+Travel apps are often cluttered and hard to use for blind users. Vizhithiru solves this by providing a **Voice-First Interface**, high-contrast UI, and essential accessibility tools all in one place.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🚀 Key Features
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 🚨 1. Emergency SOS Mode
+- A single-tap **Panic Button** that turns the screen Red.
+- Automatically fetches the user's **Live GPS Location**.
+- Opens **WhatsApp** with a pre-typed emergency message and location link to a trusted guardian.
 
-### `npm test`
+### 🤖 2. AI Voice Travel Assistant
+- Fully voice-controlled booking system (Bikes, Buses, Trains).
+- Supports **bilingual voice commands** (English & Tamil).
+- "Speech-to-Action" technology allows users to book rides just by speaking.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 📢 3. TalkBack Simulator
+- A built-in screen reader simulation for developers and testers.
+- Provides audio feedback for every interaction to guide blind users.
 
-### `npm run build`
+### 🗺️ 4. Accessible Navigation
+- Simplified map interface with "Fly-To" navigation.
+- High-contrast route plotting for low-vision users.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 🛠️ 5. Accessibility Toolkit
+- **Speech-to-Text (STT):** Converts spoken words into text for deaf/hard-of-hearing users.
+- **Text-to-Speech (TTS):** Reads out typed text for non-verbal users.
+- **Magnifier:** A digital magnifying glass with adjustable zoom levels for reading small text.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 💻 Tech Stack
+* **Frontend:** React.js, React Router DOM
+* **Maps:** Leaflet.js, OpenStreetMap API
+* **Voice AI:** Web Speech API (SpeechRecognition & SpeechSynthesis)
+* **Location:** HTML5 Geolocation API
+* **Styling:** CSS3 (Modern Blue Theme & Glassmorphism)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 📸 Screenshots
+*<img width="625" height="864" alt="Screenshot 2025-12-27 213025" src="https://github.com/user-attachments/assets/f5acdd0d-c1a4-4d36-a6bf-315882e8cb04" />
+*<img width="546" height="860" alt="Screenshot 2025-12-27 213119" src="https://github.com/user-attachments/assets/483511b7-ff41-4f1c-97fc-3747de7fdcaf" />
+*<img width="544" height="858" alt="Screenshot 2025-12-27 213135" src="https://github.com/user-attachments/assets/ec701558-9127-4cd0-8abb-a2a41315a109" />
+*<img width="1442" height="237" alt="Screenshot 2025-12-27 213205" src="https://github.com/user-attachments/assets/68b1a953-af6c-460f-a793-45cc45e0d4da" />
+*<img width="491" height="826" alt="Screenshot 2025-12-27 213232" src="https://github.com/user-attachments/assets/deb65e06-0025-4183-8bb0-84a89f98b9eb" />
+*<img width="1918" height="859" alt="Screenshot 2025-12-27 213302" src="https://github.com/user-attachments/assets/e990610a-fb4a-4c0d-be3a-6dc02c414051" />
+*<img width="437" height="859" alt="Screenshot 2025-12-27 213321" src="https://github.com/user-attachments/assets/9fcdfca9-bc8a-4c83-82e3-2d55cb17ccc9" />
+*<img width="514" height="856" alt="Screenshot 2025-12-27 213336" src="https://github.com/user-attachments/assets/ba1d8b3b-1707-4658-aed2-3174f8c4d5b1" />
+*<img width="484" height="863" alt="Screenshot 2025-12-27 213413" src="https://github.com/user-attachments/assets/2ca68169-24c5-4830-9f55-25d19d5ab595" />
+*<img width="485" height="869" alt="Screenshot 2025-12-27 213447" src="https://github.com/user-attachments/assets/68f5add3-e9a9-4df4-a415-83a50cbbeb95" />
+*<img width="490" height="865" alt="Screenshot 2025-12-27 213520" src="https://github.com/user-attachments/assets/f0200056-adbb-4da0-8c3d-20d4917c9d35" />
 
-### `npm run eject`
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## ⚙️ How to Run Locally
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+1. **Clone the Repository**
+   ```bash
+   git clone [https://github.com/Sanjaysabarinathan/vizhithiru-app.git](https://github.com/Sanjaysabarinathan/vizhithiru-app.git)
