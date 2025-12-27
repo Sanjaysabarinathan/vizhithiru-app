@@ -1,0 +1,226 @@
+/* Modern Tamil Fusion — HomePage.css */
+
+/* Base page */
+:root{
+  --primary-blue: #1e3c72;
+  --primary-blue-2:#1565c0;
+  --accent-gold: #d4a017;
+  --accent-maroon: #6f1d1b;
+  --bg-soft: #f4f7fb;
+  --card-white: rgba(255,255,255,0.9);
+  --glass: rgba(255,255,255,0.55);
+  --glass-border: rgba(255,255,255,0.5);
+  --shadow: 0 8px 30px rgba(22,33,62,0.10);
+  --radius: 16px;
+  --focus: 3px solid rgba(212,160,23,0.28);
+  --maxw: 1100px;
+}
+
+*{box-sizing:border-box}
+body,html,#root{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Noto Sans";background:var(--bg-soft);color:#0f1724}
+
+/* Container */
+.home {
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:28px;
+  padding:36px 20px 60px;
+}
+
+/* HERO (glassy) */
+.hero {
+  width:100%;
+  max-width:var(--maxw);
+  background: linear-gradient(135deg, rgba(30,60,114,0.95), rgba(17,42,88,0.95));
+  color:white;
+  border-radius:20px;
+  padding:22px;
+  display:flex;
+  gap:20px;
+  align-items:center;
+  box-shadow: 0 12px 40px rgba(8,22,60,0.35);
+}
+
+.hero-left {
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex:1;
+}
+
+.logo {
+  width:84px;
+  height:84px;
+  object-fit:contain;
+  border-radius:12px;
+  background: linear-gradient(180deg,var(--glass), rgba(255,255,255,0.08));
+  padding:10px;
+  display:inline-block;
+  flex-shrink:0;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+.title-block {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.title {
+  font-size:28px;
+  letter-spacing:6px;
+  font-weight:800;
+  color:var(--accent-gold);
+  text-transform:uppercase;
+  margin:0;
+}
+
+.tagline {
+  margin:0;
+  font-size:14px;
+  opacity:0.95;
+  color: #e6eefc;
+}
+
+/* hero right actions */
+.hero-actions {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+/* small pill buttons */
+.pill {
+  background: rgba(255,255,255,0.08);
+  color:white;
+  padding:8px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.06);
+  font-weight:600;
+  cursor:pointer;
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.pill:focus{outline:none;box-shadow:var(--focus)}
+.pill:hover{transform:translateY(-3px)}
+
+/* Feature grid */
+.features {
+  width:100%;
+  max-width:var(--maxw);
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:18px;
+  margin-top:-28px; /* pulls cards slightly under hero for depth */
+}
+
+/* Card base */
+.feature-card {
+  background: linear-gradient(180deg, var(--card-white), rgba(255,255,255,0.85));
+  border-radius: var(--radius);
+  padding:18px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(15,23,36,0.04);
+  display:flex;
+  gap:14px;
+  align-items:center;
+  cursor:pointer;
+  transition: transform .25s cubic-bezier(.2,.9,.2,1), box-shadow .25s;
+  min-height:96px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* icon circle */
+.feature-icon {
+  width:64px;
+  height:64px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,var(--primary-blue), var(--primary-blue-2));
+  color:white;
+  flex-shrink:0;
+  font-size:26px;
+  box-shadow: 0 8px 22px rgba(13,37,88,0.18);
+}
+
+/* text part */
+.feature-info {flex:1}
+.feature-title {
+  margin:0;
+  font-size:18px;
+  color: #0b2548;
+  font-weight:700;
+}
+.feature-desc {
+  margin:6px 0 0 0;
+  font-size:13px;
+  color:#344963;
+  opacity:0.9;
+}
+
+/* accent gold line */
+.feature-card::after{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:4px;
+  background: linear-gradient(180deg, var(--accent-gold), #ffcc3d);
+  transform: scaleY(.8);
+  border-top-left-radius:12px;
+  border-bottom-left-radius:12px;
+}
+
+/* hover */
+.feature-card:hover{
+  transform: translateY(-10px) rotate(-0.2deg) ;
+  box-shadow: 0 18px 50px rgba(12,28,70,0.18);
+}
+
+/* focus for keyboard users */
+.feature-card:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(212,160,23,0.15);
+}
+
+/* responsive */
+@media (max-width:1000px){
+  .features{grid-template-columns: repeat(2, 1fr)}
+  .title{font-size:26px}
+}
+@media (max-width:640px){
+  .hero{flex-direction:column;align-items:flex-start}
+  .features{grid-template-columns: 1fr}
+  .logo{width:72px;height:72px}
+  .title{font-size:22px}
+}
+
+/* small accessibility row */
+.access-row {
+  width:100%;
+  max-width:var(--maxw);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-top:6px;
+}
+.hint { color:#556; font-size:13px;}
+
+/* subtle animated background shape */
+.bg-decor {
+  position: fixed;
+  right: -120px;
+  top: -80px;
+  width:420px;
+  height:420px;
+  background: radial-gradient(circle at 30% 30%, rgba(29,57,114,0.12), rgba(212,160,23,0.04));
+  filter: blur(36px);
+  z-index:0;
+  pointer-events:none;
+}

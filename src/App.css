@@ -1,0 +1,105 @@
+/* GLOBAL SETTINGS */
+:root {
+  --primary: #2563eb;       
+  --secondary: #64748b;     
+  --accent: #22c55e;        
+  --bg-color: #f1f5f9;      
+  --card-bg: #ffffff;       
+  --text-dark: #1e293b;     
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+}
+
+/* APP CONTAINER */
+.app-container {
+  max-width: 480px; 
+  margin: 0 auto;   
+  min-height: 100vh;
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 50px rgba(0,0,0,0.1);
+}
+
+/* HEADER */
+.page-header {
+  padding: 20px;
+  background: white;
+  text-align: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+.page-header h1 { font-size: 1.5rem; margin: 0; }
+.page-header p { margin: 5px 0 0 0; color: var(--secondary); font-size: 0.9rem; }
+
+/* BUTTONS */
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  padding: 20px;
+}
+
+.app-btn {
+  border: none;
+  border-radius: 16px;
+  padding: 15px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.full-width { grid-column: span 2; }
+.back-btn { background: none; border: none; font-size: 1rem; cursor: pointer; }
+
+/* COLORS */
+.btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-green { background: linear-gradient(135deg, #10b981, #059669); }
+.btn-amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.btn-slate { background: #475569; }
+.btn-purple { background: #7c3aed; }
+.btn-pink { background: #db2777; }
+.btn-orange { background: #ea580c; }
+
+/* TRAVEL PAGE SPECIFICS */
+.status-card {
+  background: #f8fafc;
+  margin: 20px;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.mic-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  background: white;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  cursor: pointer;
+}
+.mic-icon.active { background: #ef4444; color: white; animation: pulse 1.5s infinite; }
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.talkback-focus { outline: 4px solid #22c55e !important; }
