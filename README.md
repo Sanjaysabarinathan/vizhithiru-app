@@ -1,4 +1,4 @@
-# 👁️ VIZHITHIRU - Accessible Travel Assistant
+# 👁️ VIZHITHIRU 
 
 ![Vizhithiru Logo](src/logo.png)
 
