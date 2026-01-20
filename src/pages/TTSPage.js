@@ -44,7 +44,7 @@ export default function TTSPage() {
       </div>
 
       <div style={{marginTop: 'auto', textAlign:'center', paddingTop: 30}}>
-        <button onClick={() => navigate("/")} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
+        <button onClick={() => navigate("/home")} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
           ⬅ Back to Home
         </button>
       </div>

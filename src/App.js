@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import TalkBackManager from './TalkBackManager';
 
 // Import All Pages
+import DriverLoginPage from "./pages/DriverLoginPage";
+import DriverDashboard from "./pages/DriverDashboard";
 import LoginPage from './pages/LoginPage'; // ⬅ NEW IMPORT
 import HomePage from './pages/HomePage';
 import TravelPage from './pages/TravelPage';
@@ -27,6 +29,8 @@ function App() {
         <Route path="/home" element={<HomePage />} />
 
         {/* Other Pages */}
+        <Route path="/driver-login" element={<DriverLoginPage />} />
+        <Route path="/driver-dashboard" element={<DriverDashboard />} />
         <Route path="/travel" element={<TravelPage />} />
         <Route path="/map" element={<MapsPage />} />
         <Route path="/talkback" element={<TalkBackPage />} />

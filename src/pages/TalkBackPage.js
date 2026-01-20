@@ -63,7 +63,7 @@ function TalkBackPage() {
       </p>
 
       <button 
-        onClick={() => navigate("/")} 
+        onClick={() => navigate("/home")} 
         style={{ marginTop: 40, background: "none", border: "none", fontSize: "1.1rem", cursor: "pointer", textDecoration: "underline" }}
       >
         ⬅ Back to Home

@@ -56,7 +56,7 @@ export default function ZoomPage() {
       </p>
 
       <div style={{marginTop: 'auto', textAlign:'center', paddingTop: 20}}>
-        <button onClick={() => navigate("/")} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
+        <button onClick={() => navigate("/home")} style={{background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
           ⬅ Back to Home
         </button>
       </div>

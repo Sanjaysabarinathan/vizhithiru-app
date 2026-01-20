@@ -87,7 +87,7 @@ export default function STTPage() {
         )}
       </div>
 
-      <button onClick={() => navigate("/")} style={{marginTop: 20, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
+      <button onClick={() => navigate("/home")} style={{marginTop: 20, background: 'none', border: 'none', cursor: 'pointer', color: '#64748b'}}>
         ⬅ Back to Home
       </button>
     </div>

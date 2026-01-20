@@ -1,105 +1,173 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css"; 
-import logo from "../logo.png"; 
 
-export default function HomePage() {
+// 🗣️ TRANSLATION DICTIONARY
+const DICTIONARY = {
+  en: { 
+    hello: "Hello,", 
+    welcome: "Welcome to Vilithiru",
+    sos: "Emergency SOS",
+    sosDesc: "Alert Guardian immediately",
+    travel: "Travel Assistant",
+    travelDesc: "Book Auto, Bike, Bus",
+    maps: "Maps & Nav",
+    mapsDesc: "Find your way",
+    vision: "Vision Tools",
+    visionDesc: "TalkBack, STT, TTS, Zoom",
+    logout: "Logout",
+    langBtn: "🇮🇳 Tamil",
+    replay: "🔊 Replay Welcome"
+  },
+  ta: { 
+    hello: "Vanakkam,", 
+    welcome: "Vizhithiru-vuku varaverkirom",
+    sos: "Avasara Udhavi",
+    sosDesc: "Udanae Guardian-ai azhai",
+    travel: "Payana Udhavi",
+    travelDesc: "Auto, Bike, Bus booking",
+    maps: "Varaipadam",
+    mapsDesc: "Vazhi kandupidi",
+    vision: "Paarvai Karuvigal",
+    visionDesc: "Pechu, Ezhuthu, Zoom",
+    logout: "Veliyeru",
+    langBtn: "🇬🇧 English",
+    replay: "🔊 Varaverpu"
+  }
+};
+
+export default function Home() {
   const navigate = useNavigate();
-  const userName = localStorage.getItem("viz_user_name") || "Traveler";
+  const [userName, setUserName] = useState("Traveller");
+  const [lang, setLang] = useState("en"); 
 
-  // 🚪 LOGOUT FUNCTION
+  // --- 1. LOAD USER & LANGUAGE ---
+  useEffect(() => {
+    // Read from Session Storage (Fixes Rahul/Kajal issue)
+    const storedName = sessionStorage.getItem("viz_user_name");
+    if (storedName) {
+      setUserName(storedName);
+    } else {
+      navigate("/"); // Kick out if not logged in
+    }
+
+    const savedLang = localStorage.getItem("viz_app_lang");
+    if(savedLang) setLang(savedLang);
+
+  }, [navigate]);
+
+  // --- 2. TRANSLATION HELPER ---
+  const t = (key) => DICTIONARY[lang][key];
+
+  // --- 3. VOICE WELCOME ---
+  const speakWelcome = useCallback(() => {
+    window.speechSynthesis.cancel();
+    const text = lang === "en" 
+      ? `Hello ${userName}, Welcome to Vizhithiru.` 
+      : `Vanakkam ${userName}, Vizhithiru-vuku varaverkirom.`;
+    const msg = new SpeechSynthesisUtterance(text);
+    msg.lang = lang === "en" ? "en-IN" : "ta-IN";
+    window.speechSynthesis.speak(msg);
+  }, [lang, userName]);
+
+  useEffect(() => {
+    if(userName !== "Traveller") {
+        const timer = setTimeout(() => speakWelcome(), 500);
+        return () => clearTimeout(timer);
+    }
+  }, [userName, lang, speakWelcome]);
+
+  // --- 4. ACTIONS ---
+  const toggleLang = () => {
+      const newLang = lang === "en" ? "ta" : "en";
+      setLang(newLang);
+      localStorage.setItem("viz_app_lang", newLang);
+  };
+
   const handleLogout = () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-    if (confirmLogout) {
-      // 1. Clear Data
-      localStorage.removeItem("viz_user_name");
-      localStorage.removeItem("viz_guardian_phone");
-      
-      // 2. Go to Login Page
-      navigate("/");
+    if(window.confirm("Are you sure you want to logout?")) {
+        sessionStorage.clear();
+        navigate("/");
     }
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{padding: 30, justifyContent: 'center'}}>
       
       {/* HEADER SECTION */}
-      <div className="page-header" style={{paddingBottom: 25, position: 'relative'}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 30}}>
+        <div>
+           <h1 style={{fontSize: '2rem', color: '#64748b', margin: 0}}>{t('hello')}</h1>
+           <h2 style={{fontSize: '2.2rem', color: '#2563eb', margin: 0, textTransform:'capitalize'}}>{userName} 👋</h2>
+        </div>
         
-        {/* 🚪 LOGOUT BUTTON (Top Right) */}
-        <button 
-          onClick={handleLogout}
-          style={{
-            position: 'absolute', top: 15, right: 15,
-            background: '#fee2e2', color: '#ef4444', border: 'none',
-            padding: '5px 10px', borderRadius: 8, fontSize: '0.8rem',
-            fontWeight: 'bold', cursor: 'pointer'
-          }}
-        >
-          Logout ➜
-        </button>
-
-        {/* LOGO & NAME */}
-        <img 
-          src={logo} 
-          alt="Vizhithiru Logo" 
-          style={{ width: 80, height: "auto", display: "block", margin: "0 auto 10px auto" }} 
-        />
-        
-        <p style={{margin: 0, color: '#64748b', fontSize: '0.9rem'}}>Welcome,</p>
-        <h1 style={{fontSize: "1.8rem", color: "#1e293b", textTransform: 'uppercase', margin: 0}}>{userName}</h1>
-
-        <div style={{ marginTop: 8, padding: "5px 15px", background: "#f1f5f9", borderRadius: "20px", color: "#475569", fontSize: "0.85rem" }}>
-          ✨ Empowering Every Journey ✨
+        <div style={{display:'flex', flexDirection:'column', gap:10, alignItems:'flex-end'}}>
+            <button onClick={handleLogout} style={{background: '#ef4444', color: 'white', border: 'none', padding: '8px 15px', borderRadius: 8, cursor: 'pointer', fontWeight:'bold', fontSize:'0.9rem'}}>
+              {t('logout')}
+            </button>
+            <button onClick={toggleLang} style={{background: '#e2e8f0', color: '#334155', border: 'none', padding: '8px 15px', borderRadius: 8, cursor: 'pointer', fontSize:'0.8rem'}}>
+              {t('langBtn')}
+            </button>
         </div>
       </div>
 
-      {/* MENU GRID */}
-      <div className="btn-grid">
+      {/* MAIN MENU GRID */}
+      <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15}}>
         
-        {/* 🚨 SOS BUTTON */}
-        <button 
-          onClick={() => navigate("/sos")} 
-          className="app-btn full-width"
-          style={{ background: '#ef4444', color: 'white', border: '2px solid #b91c1c' }}
-        >
-          <span style={{fontSize: "2rem"}}>🚨</span>
-          EMERGENCY SOS
-        </button>
+        {/* 🚨 SOS (Full Width) */}
+        <div onClick={() => navigate("/sos")} className="home-card" style={{background: '#fee2e2', border: '2px solid #dc2626', gridColumn: 'span 2', display:'flex', alignItems:'center', justifyContent:'center', gap: 20, padding: 20}}>
+           <div style={{fontSize: '3rem'}}>🚨</div>
+           <div style={{textAlign:'left'}}>
+               <h3 style={{margin:0, color:'#991b1b', fontSize:'1.4rem'}}>{t('sos')}</h3>
+               <p style={{margin:0, color:'#ef4444', fontSize:'0.9rem'}}>{t('sosDesc')}</p>
+           </div>
+        </div>
 
-        {/* 1. TRAVEL */}
-        <button onClick={() => navigate("/travel")} className="app-btn btn-blue full-width">
-          <span style={{fontSize: "1.5rem"}}>🤖</span>
-          Travel Assistant
-        </button>
+        {/* 🚕 TRAVEL */}
+        <div onClick={() => navigate("/travel")} className="home-card" style={{background: '#dbeafe', border: '2px solid #2563eb'}}>
+           <div style={{fontSize: '2.5rem', marginBottom: 5}}>🤖</div>
+           <h3 style={{margin:0, color:'#1e3a8a', fontSize:'1.1rem'}}>{t('travel')}</h3>
+           <p style={{margin:0, fontSize:'0.8rem', color:'#60a5fa'}}>{t('travelDesc')}</p>
+        </div>
 
-        {/* 2. MAPS */}
-        <button onClick={() => navigate("/map")} className="app-btn btn-green full-width">
-          <span style={{fontSize: "1.5rem"}}>🗺️</span>
-          Maps & Navigation
-        </button>
+        {/* 🗺️ MAPS */}
+        <div onClick={() => navigate("/map")} className="home-card" style={{background: '#dcfce7', border: '2px solid #16a34a'}}>
+           <div style={{fontSize: '2.5rem', marginBottom: 5}}>🗺️</div>
+           <h3 style={{margin:0, color:'#14532d', fontSize:'1.1rem'}}>{t('maps')}</h3>
+           <p style={{margin:0, fontSize:'0.8rem', color:'#4ade80'}}>{t('mapsDesc')}</p>
+        </div>
 
-        {/* 3. TALKBACK */}
-        <button onClick={() => navigate("/talkback")} className="app-btn btn-slate">
-          <span style={{fontSize: "1.2rem"}}>📢</span> TalkBack
-        </button>
+        {/* 📢 TALKBACK */}
+        <div onClick={() => navigate("/talkback")} className="home-card" style={{background: '#f1f5f9', border: '2px solid #cbd5e1'}}>
+           <div style={{fontSize: '2rem'}}>📢</div>
+           <h4 style={{margin:'5px 0 0 0', color:'#475569'}}>TalkBack</h4>
+        </div>
 
-        {/* 4. STT */}
-        <button onClick={() => navigate("/stt")} className="app-btn btn-purple">
-          <span style={{fontSize: "1.2rem"}}>🎤</span> Speech to Text
-        </button>
+        {/* 🎤 STT */}
+        <div onClick={() => navigate("/stt")} className="home-card" style={{background: '#f3e8ff', border: '2px solid #9333ea'}}>
+           <div style={{fontSize: '2rem'}}>🎤</div>
+           <h4 style={{margin:'5px 0 0 0', color:'#6b21a8'}}>Speech to Text</h4>
+        </div>
 
-        {/* 5. TTS */}
-        <button onClick={() => navigate("/tts")} className="app-btn btn-pink">
-          <span style={{fontSize: "1.2rem"}}>🗣️</span> Text to Speech
-        </button>
+        {/* 🗣️ TTS */}
+        <div onClick={() => navigate("/tts")} className="home-card" style={{background: '#fce7f3', border: '2px solid #db2777'}}>
+           <div style={{fontSize: '2rem'}}>🗣️</div>
+           <h4 style={{margin:'5px 0 0 0', color:'#9d174d'}}>Text to Speech</h4>
+        </div>
 
-        {/* 6. MAGNIFIER */}
-        <button onClick={() => navigate("/zoom")} className="app-btn btn-orange">
-          <span style={{fontSize: "1.2rem"}}>🔍</span> Magnifier
-        </button>
+        {/* 🔍 MAGNIFIER */}
+        <div onClick={() => navigate("/zoom")} className="home-card" style={{background: '#ffedd5', border: '2px solid #ea580c'}}>
+           <div style={{fontSize: '2rem'}}>🔍</div>
+           <h4 style={{margin:'5px 0 0 0', color:'#c2410c'}}>Magnifier</h4>
+        </div>
 
       </div>
+
+      {/* REPLAY WELCOME */}
+      <button onClick={speakWelcome} style={{marginTop: 30, background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', width:'100%', textAlign:'center'}}>
+        {t('replay')}
+      </button>
+
     </div>
   );
 }
