@@ -23,12 +23,13 @@ function FlyToLocation({ position }) {
 export default function MapsPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // State
   const [userPos, setUserPos] = useState([11.1085, 77.3411]); // Default: Tiruppur
-  const [destPos, setDestPos] = useState(null); 
+  const [destPos, setDestPos] = useState(null);
   const [destName, setDestName] = useState("");
   const [routeCoords, setRouteCoords] = useState([]); // <--- New State for Road Route
+  const [navStarted, setNavStarted] = useState(false);
 
   // 1. SETUP ON LOAD
   useEffect(() => {
@@ -66,7 +67,6 @@ export default function MapsPage() {
     fetchRoute();
   }, [userPos, destPos]); // Run whenever positions change
 
-  // 3. GPS FUNCTION
   const locateUser = () => {
     if (!navigator.geolocation) return alert("GPS not supported");
     navigator.geolocation.getCurrentPosition(
@@ -75,24 +75,40 @@ export default function MapsPage() {
     );
   };
 
+  const startNavigation = () => {
+    setNavStarted(true);
+    const speak = (msg) => {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(msg);
+      window.speechSynthesis.speak(u);
+    };
+    speak("Starting navigation to " + destName + ". In 200 meters, turn slight right.");
+
+    // Simulate progress 
+    setTimeout(() => speak("You have arrived at your destination."), 10000);
+  };
+
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       {/* HEADER */}
-      <div style={{ padding: 15, background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', display:'flex', justifyContent:'space-between', alignItems:'center', zIndex: 1000 }}>
-        <button onClick={() => navigate(-1)} style={{ background:'#334155', color:'white', border:'none', padding:'8px 12px', borderRadius:5, cursor:'pointer'}}>⬅ Back</button>
-        <span style={{fontWeight:'bold'}}>{destName ? `To: ${destName}` : "Maps"}</span>
-        <button onClick={locateUser} style={{ background:'#2563eb', color:'white', border:'none', padding:'8px 12px', borderRadius:5, cursor:'pointer'}}>📍 GPS</button>
+      <div style={{ padding: 15, background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 1000 }}>
+        <button onClick={() => navigate(-1)} style={{ background: '#334155', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 5, cursor: 'pointer' }}>⬅ Back</button>
+        <span style={{ fontWeight: 'bold' }}>{destName ? `To: ${destName}` : "Maps"}</span>
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <button onClick={locateUser} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 5, cursor: 'pointer' }}>📍 GPS</button>
+          {destPos && !navStarted && <button onClick={startNavigation} style={{ background: '#10b981', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 5, cursor: 'pointer' }}>🏁 Start Nav</button>}
+        </div>
       </div>
 
       {/* MAP */}
       <div style={{ flex: 1, width: "100%", height: "100%" }}>
-        <MapContainer 
-          center={userPos} 
-          zoom={13} 
+        <MapContainer
+          center={userPos}
+          zoom={13}
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          
+
           <FlyToLocation position={destPos || userPos} />
 
           {/* Markers */}
@@ -101,12 +117,12 @@ export default function MapsPage() {
 
           {/* REAL ROAD ROUTE (Blue Line) */}
           {routeCoords.length > 0 && (
-             <Polyline positions={routeCoords} color="blue" weight={5} opacity={0.7} />
+            <Polyline positions={routeCoords} color="blue" weight={5} opacity={0.7} />
           )}
 
           {/* Fallback Straight Line (if OSRM fails) */}
           {destPos && routeCoords.length === 0 && (
-             <Polyline positions={[userPos, destPos]} color="red" dashArray="5, 10" />
+            <Polyline positions={[userPos, destPos]} color="red" dashArray="5, 10" />
           )}
 
         </MapContainer>

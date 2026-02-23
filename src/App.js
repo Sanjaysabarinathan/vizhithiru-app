@@ -1,5 +1,5 @@
 import React from 'react';
-import './App.css'; 
+import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import TalkBackManager from './TalkBackManager';
 
@@ -14,7 +14,9 @@ import TalkBackPage from './pages/TalkBackPage';
 import STTPage from './pages/STTPage';
 import TTSPage from './pages/TTSPage';
 import ZoomPage from './pages/ZoomPage';
-import SOSPage from './pages/SOSPage'; 
+import SOSPage from './pages/SOSPage';
+import VisionToolsPage from './pages/VisionToolsPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 function App() {
   return (
@@ -38,6 +40,8 @@ function App() {
         <Route path="/tts" element={<TTSPage />} />
         <Route path="/zoom" element={<ZoomPage />} />
         <Route path="/sos" element={<SOSPage />} />
+        <Route path="/vision" element={<VisionToolsPage />} />
+        <Route path="/admin" element={<AdminDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );

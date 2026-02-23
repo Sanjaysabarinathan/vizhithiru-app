@@ -1,77 +1,70 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom"; 
-import "../App.css"; 
+import { useNavigate } from "react-router-dom";
+import "../App.css";
 
-// 🗣️ TRANSLATION DICTIONARY
 const DICTIONARY = {
-  en: { 
-    welcome: "Select a vehicle", 
+  en: {
+    welcome: "Select a vehicle",
     searching: "Searching for driver...",
-    cancel: "Cancelled.",
-    fare: "Fare is approx 50 rupees",
-    confirm: "Booking confirmed.",
-    cleared: "History cleared.",
-    listening: "Listening...",
-    speakNow: "Say 'Pickup X' or 'Drop Y'",
     pickup: "Pickup Location",
     drop: "Drop Location",
-    askLocation: "selected. Please say or type your pickup and drop location."
+    askPickup: "Where should we pick you up?",
+    askDrop: "Where do you want to go?",
+    confirm: "Confirm Booking",
+    listening: "Listening...",
+    langBtn: "🇮🇳 Tamil",
+    auto: "Auto",
+    bike: "Bike",
+    bus: "Bus",
+    clear: "Clear",
+    historyCleared: "History cleared"
   },
-  ta: { 
-    welcome: "Vaaganathai therndhedukkavum", 
-    searching: "Driverai thedugirom...",
-    cancel: "Ratthu seiyyapatthu.",
-    fare: "Kattanam 50 rubai.",
-    confirm: "Urudhi aayirru.",
-    cleared: "Varalaaru alikkapattadhu.",
-    listening: "Kavanikkirathu...",
-    speakNow: "Sollavum 'Pickup...' allathu 'Drop...'",
-    pickup: "Yeri kollum idam",
-    drop: "Irangum idam",
-    askLocation: "thervu seiyapattathu. Pickup mattrum Drop idathai sollavum."
+  ta: {
+    welcome: "வாகனத்தைத் தேர்ந்தெடுக்கவும்",
+    searching: "டிரைவரைத் தேடுகிறோம்...",
+    pickup: "ஏறிக்கொள்ளும் இடம்",
+    drop: "இறங்கும் இடம்",
+    askPickup: "உங்களை எங்கிருந்து அழைத்துச் செல்ல வேண்டும்?",
+    askDrop: "நீங்கள் எங்கு செல்ல வேண்டும்?",
+    confirm: "முன்பதிவை உறுதி செய்",
+    listening: "கவனிக்கிறது...",
+    langBtn: "🇬🇧 English",
+    auto: "ஆட்டோ",
+    bike: "பைக்",
+    bus: "பேருந்து",
+    clear: "அழி",
+    historyCleared: "வரலாறு அழிக்கப்பட்டது"
   }
 };
 
 export default function TravelPage() {
-  const navigate = useNavigate(); 
-  
-  // --- STATE ---
-  const [lang, setLang] = useState("en"); 
-  const [status, setStatus] = useState("IDLE"); 
-  const [transcript, setTranscript] = useState("");
-  
-  // Booking State
+  const navigate = useNavigate();
+  const [lang, setLang] = useState("en");
+  const [status, setStatus] = useState("IDLE");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [pickupLoc, setPickupLoc] = useState(""); 
-  const [dropLoc, setDropLoc] = useState("");     
+  const [pickupLoc, setPickupLoc] = useState("");
+  const [dropLoc, setDropLoc] = useState("");
   const [bookings, setBookings] = useState([]);
+  const [activeRide, setActiveRide] = useState(null);
 
-  // Session Data
   const userName = sessionStorage.getItem("viz_user_name") || "User";
-  const userPhone = sessionStorage.getItem("viz_guardian_phone"); 
-
+  const userPhone = sessionStorage.getItem("viz_guardian_phone");
   const recognitionRef = useRef(null);
 
-  // --- HELPER 1: TRANSLATE ---
   const t = useCallback((key) => DICTIONARY[lang][key] || key, [lang]);
 
-  // --- HELPER 2: SPEAK ---
-  const speak = useCallback((text) => {
-    if(status === "SEARCHING") return; 
-    if(recognitionRef.current) recognitionRef.current.stop();
+  const fetchActiveRide = useCallback(async () => {
+    if (!userPhone) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/api/ride/active-user/${userPhone}`);
+      const data = await res.json();
+      if (data.success) setActiveRide(data.ride);
+    } catch (e) { console.error("Active Ride Fetch Error", e); }
+  }, [userPhone]);
 
-    setStatus("SPEAKING");
-    window.speechSynthesis.cancel();
-    
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang === "en" ? "en-IN" : "ta-IN";
-    u.onend = () => setStatus("IDLE");
-    window.speechSynthesis.speak(u);
-  }, [lang, status]);
-
-  // --- HELPER 3: FETCH HISTORY ---
+  // --- HELPER: FETCH RIDE HISTORY ---
   const fetchHistory = useCallback(async () => {
-    if(!userPhone) return;
+    if (!userPhone) return;
     try {
       const res = await fetch(`http://127.0.0.1:5000/api/ride/history/${userPhone}`);
       const data = await res.json();
@@ -79,195 +72,225 @@ export default function TravelPage() {
     } catch (e) { console.error("History Error", e); }
   }, [userPhone]);
 
+  // --- ACTION: CLEAR HISTORY ---
   const clearHistory = async () => {
-      if(!window.confirm("Delete history?")) return;
-      try {
-          const res = await fetch(`http://127.0.0.1:5000/api/ride/clear/${userPhone}`, { method: 'DELETE' });
-          if((await res.json()).success) { setBookings([]); speak(t('cleared')); }
-      } catch(e) { alert("Failed"); }
+    if (!window.confirm(lang === "en" ? "Delete history?" : "வரலாற்றை அழிக்கவா?")) return;
+    try {
+      const res = await fetch(`http://127.0.0.1:5000/api/ride/clear/${userPhone}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        setBookings([]);
+        const msg = new SpeechSynthesisUtterance(t('historyCleared'));
+        msg.lang = lang === "en" ? "en-IN" : "ta-IN";
+        window.speechSynthesis.speak(msg);
+      }
+    } catch (e) { alert("Failed to clear history"); }
   };
 
-  // --- ACTION: SELECT VEHICLE & PROMPT USER ---
-  // ✅ FIXED: Wrapped in useCallback to satisfy linter
-  const handleVehicleSelect = useCallback((vehicle) => {
-      setSelectedVehicle(vehicle);
-      speak(`${vehicle} ${t('askLocation')}`);
-  }, [speak, t]);
+  useEffect(() => {
+    fetchHistory();
+    fetchActiveRide();
 
-  // --- ACTION: GPS LOCATION ---
-  const getGPSLocation = () => {
-    if (!navigator.geolocation) return alert("GPS not supported");
-    setStatus("SEARCHING"); speak("Getting location...");
+    // Auto refresh active ride status
+    const interval = setInterval(() => {
+      fetchHistory();
+      fetchActiveRide();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [fetchHistory, fetchActiveRide]);
 
-    navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
+  const startVoiceInput = (field) => {
+    if (status === "LISTENING") return;
+    window.speechSynthesis.cancel();
+    const text = field === "pickup" ? t('askPickup') : t('askDrop');
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === "en" ? "en-IN" : "ta-IN";
+    u.onend = () => {
+      if (recognitionRef.current) {
         try {
-            const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const address = data.display_name.split(",").slice(0, 2).join(",");
-            
-            setPickupLoc(address); 
+          setStatus("LISTENING");
+          recognitionRef.current.start();
+          recognitionRef.current.onresult = (e) => {
+            const result = e.results[0][0].transcript;
+            if (field === "pickup") setPickupLoc(result);
+            else setDropLoc(result);
             setStatus("IDLE");
-            speak(`Pickup set to: ${address}`);
-        } catch (e) { alert("Location Error"); setStatus("IDLE"); }
-    }, () => { alert("GPS Denied"); setStatus("IDLE"); });
+          };
+          recognitionRef.current.onend = () => setStatus("IDLE");
+        } catch (err) { console.log("Mic Busy"); }
+      }
+    };
+    window.speechSynthesis.speak(u);
   };
 
-  // --- ACTION: FINALIZE BOOKING ---
-  const finalizeBooking = useCallback(async () => {
-    if(!pickupLoc || !dropLoc) {
-        speak("Please enter both Pickup and Drop locations.");
-        return alert("⚠️ Please enter both locations!");
-    }
+  const handleVehicleSelection = (v) => {
+    setSelectedVehicle(v);
+    window.speechSynthesis.cancel();
+    const vehicleName = t(v.toLowerCase());
+    const msg = new SpeechSynthesisUtterance(vehicleName);
+    msg.lang = lang === "en" ? "en-IN" : "ta-IN";
+    window.speechSynthesis.speak(msg);
+  };
 
-    const newOtp = Math.floor(1000 + Math.random() * 9000).toString(); 
-    setStatus("SEARCHING"); speak(`${t('searching')}`);
-
-    const combinedRoute = `${pickupLoc} ➡️ ${dropLoc}`;
-
+  const finalizeBooking = async () => {
+    if (!pickupLoc || !dropLoc) return alert("Please enter locations!");
+    const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    setStatus("SEARCHING");
     try {
       const response = await fetch('http://127.0.0.1:5000/api/ride/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            riderName: userName, 
-            riderPhone: userPhone, 
-            vehicleType: selectedVehicle, 
-            pickupLocation: combinedRoute, 
-            otp: newOtp 
+        body: JSON.stringify({
+          riderName: userName, riderPhone: userPhone,
+          vehicleType: selectedVehicle, pickupLocation: `${pickupLoc} ➡️ ${dropLoc}`,
+          otp: newOtp
         })
       });
       const data = await response.json();
-      if (data.success) { speak(`Booking Sent. OTP is ${newOtp}`); alert(`✅ OTP CODE: ${newOtp}`); fetchHistory(); } 
-    } catch (error) { speak("Connection Failed"); }
-    
-    setStatus("IDLE"); setSelectedVehicle(null); setPickupLoc(""); setDropLoc("");
-  }, [pickupLoc, dropLoc, selectedVehicle, userName, userPhone, speak, t, fetchHistory]);
+      if (data.success) {
+        const confirmationText = lang === "en"
+          ? `Booking confirmed for ${selectedVehicle}. Price is ${data.fare} rupees. Your O T P is ${newOtp.split('').join(' ')}.`
+          : `${t(selectedVehicle.toLowerCase())} முன்பதிவு செய்யப்பட்டது. விலை ${data.fare} ரூபாய். உங்கள் ஓ டி பி ${newOtp.split('').join(' ')}.`;
 
-  // --- ACTION: VOICE COMMANDS ---
-  const handleIntent = useCallback((text) => {
-    const lower = text.toLowerCase();
-    console.log("🗣️ Heard:", lower); 
+        const msg = new SpeechSynthesisUtterance(confirmationText);
+        msg.lang = lang === "en" ? "en-IN" : "ta-IN";
+        window.speechSynthesis.speak(msg);
 
-    if (lower.includes("cancel")) { setSelectedVehicle(null); return speak(t('cancel')); }
-
-    if (selectedVehicle) {
-      if (lower.includes("confirm") || lower.includes("book")) {
-          finalizeBooking();
-      } 
-      else if (lower.includes("pickup") || lower.includes("start")) {
-          const loc = text.replace(/pickup|start|at|from/gi, "").trim();
-          setPickupLoc(loc);
-          speak(`Pickup: ${loc}`);
+        alert(`✅ Booking Sent!\nFare: ₹${data.fare}\nOTP: ${newOtp}`);
+        setSelectedVehicle(null);
+        setPickupLoc(""); setDropLoc("");
+        fetchActiveRide();
+        fetchHistory();
       }
-      else if (lower.includes("drop") || lower.includes("to") || lower.includes("go to")) {
-          const loc = text.replace(/drop|to|go to/gi, "").trim();
-          setDropLoc(loc);
-          speak(`Drop: ${loc}`);
-      }
-      else {
-          if(pickupLoc && !dropLoc) setDropLoc(text);
-          else setPickupLoc(text);
-      }
-      return;
-    }
+    } catch (e) { console.error(e); }
+    setStatus("IDLE");
+  };
 
-    // Vehicle Selection
-    if (lower.includes("auto")) handleVehicleSelect("Auto");
-    else if (lower.includes("bike")) handleVehicleSelect("Bike");
-    else if (lower.includes("bus")) handleVehicleSelect("Bus");
-    else if (lower.includes("train")) handleVehicleSelect("Train");
-    
-  }, [selectedVehicle, pickupLoc, dropLoc, speak, t, finalizeBooking, handleVehicleSelect]); // ✅ Added handleVehicleSelect dependency
+  const toggleLang = () => {
+    const newLang = lang === "en" ? "ta" : "en";
+    setLang(newLang);
+    localStorage.setItem("viz_app_lang", newLang);
+  };
 
-  // --- SETUP ---
   useEffect(() => {
+    const savedLang = localStorage.getItem("viz_app_lang") || "en";
+    setLang(savedLang);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = lang === "en" ? "en-IN" : "ta-IN";
-    rec.onstart = () => setStatus("LISTENING");
-    rec.onresult = (e) => { const text = e.results[0][0].transcript; setTranscript(text); handleIntent(text); };
-    rec.onend = () => setStatus("IDLE");
-    recognitionRef.current = rec;
-  }, [lang, handleIntent]);
-
-  useEffect(() => { fetchHistory(); const i = setInterval(fetchHistory, 3000); return () => clearInterval(i); }, [fetchHistory]);
-  const startListening = () => { if (recognitionRef.current && status === "IDLE") recognitionRef.current.start(); };
+    if (SR) {
+      const rec = new SR();
+      rec.lang = savedLang === "en" ? "en-IN" : "ta-IN";
+      recognitionRef.current = rec;
+    }
+  }, [lang]);
 
   return (
-    <div className="app-container">
-      <div className="page-header" style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-        <button onClick={() => navigate("/home")} className="back-btn">⬅ Home</button>
-        <button onClick={() => setLang(lang === "en" ? "ta" : "en")} className="app-btn btn-slate" style={{padding:'5px 15px', fontSize:'0.8rem'}}>{lang === "en" ? "🇮🇳 Tamil" : "🇬🇧 English"}</button>
+    <div className="app-container" style={{ padding: '20px', background: '#f8fafc', minHeight: '100vh' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <button onClick={() => navigate("/home")} style={backBtnStyle}>⬅ Home</button>
+        <button onClick={toggleLang} style={langBtnStyle}>{t('langBtn')}</button>
+      </header>
+
+      <h2 style={{ margin: '0 0 20px 0', color: '#1e293b', textAlign: 'center' }}>{t('welcome')}</h2>
+
+      {/* ACTIVE RIDE SECTION */}
+      {activeRide && (
+        <div style={{ background: '#2563eb', color: 'white', padding: 20, borderRadius: 24, marginBottom: 25, boxShadow: '0 8px 20px rgba(37, 99, 235, 0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ background: '#3b82f6', padding: '4px 12px', borderRadius: 20, fontSize: '0.8rem', fontWeight: 'bold' }}>ACTIVE RIDE</span>
+            <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>₹{activeRide.fare}</span>
+          </div>
+          <h3 style={{ margin: '5px 0' }}>{activeRide.driverName || t('searching')}</h3>
+          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>{activeRide.pickupLocation}</div>
+
+          <div style={{ marginTop: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>STATUS</div>
+              <div style={{ fontWeight: 'bold' }}>{activeRide.status.toUpperCase()}</div>
+            </div>
+            {activeRide.status !== "In Progress" && (
+              <div style={{ background: 'white', color: '#2563eb', padding: '10px 20px', borderRadius: 15, textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', marginBottom: 4 }}>OTP</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 'bold', letterSpacing: 2 }}>{activeRide.otp}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30 }}>
+        {['Auto', 'Bike', 'Bus'].map(v => (
+          <div
+            key={v}
+            onClick={() => handleVehicleSelection(v)}
+            style={{
+              padding: '20px 10px', borderRadius: 20, textAlign: 'center', cursor: 'pointer',
+              background: selectedVehicle === v ? '#2563eb' : 'white',
+              color: selectedVehicle === v ? 'white' : '#1e293b',
+              border: '2px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+            }}
+          >
+            <div style={{ fontSize: '2.5rem' }}>{v === 'Auto' ? '🛺' : v === 'Bike' ? '🏍️' : '🚌'}</div>
+            <div style={{ fontWeight: 'bold', marginTop: 5 }}>{t(v.toLowerCase())}</div>
+          </div>
+        ))}
       </div>
 
-      {/* BOOKING FORM */}
       {selectedVehicle && (
-        <div style={{background: 'white', padding: 20, margin: '20px 0', borderRadius: 15, border: '2px solid #2563eb'}}>
-          <h3 style={{marginTop: 0, color: '#1e293b'}}>📍 Book {selectedVehicle}</h3>
-          
-          <div style={{marginBottom: 15}}>
-              <label style={{fontSize:'0.9rem', color:'#64748b', fontWeight:'bold'}}>🟢 {t('pickup')}</label>
-              <div style={{display:'flex', gap:10, marginTop:5}}>
-                  <input type="text" placeholder="Start Location" value={pickupLoc} onChange={(e) => setPickupLoc(e.target.value)} style={inputStyle} />
-                  <button onClick={getGPSLocation} style={{padding:'10px', background:'#e2e8f0', border:'none', borderRadius:8, cursor:'pointer'}}>📍 GPS</button>
-              </div>
+        <div style={{ background: 'white', padding: 25, borderRadius: 24, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0 }}>📍 Book {t(selectedVehicle.toLowerCase())}</h3>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>🟢 {t('pickup')}</label>
+            <input
+              type="text"
+              placeholder={t('askPickup')}
+              value={pickupLoc}
+              onFocus={() => startVoiceInput("pickup")}
+              onChange={(e) => setPickupLoc(e.target.value)}
+              style={inputStyle}
+            />
           </div>
 
-          <div style={{marginBottom: 15}}>
-              <label style={{fontSize:'0.9rem', color:'#64748b', fontWeight:'bold'}}>🔴 {t('drop')}</label>
-              <input type="text" placeholder="End Location" value={dropLoc} onChange={(e) => setDropLoc(e.target.value)} style={{...inputStyle, marginTop:5, width:'93%'}} />
+          <div style={{ marginBottom: 25 }}>
+            <label style={labelStyle}>🔴 {t('drop')}</label>
+            <input
+              type="text"
+              placeholder={t('askDrop')}
+              value={dropLoc}
+              onFocus={() => startVoiceInput("drop")}
+              onChange={(e) => setDropLoc(e.target.value)}
+              style={inputStyle}
+            />
           </div>
 
-          <div onClick={startListening} style={{textAlign:'center', margin:'10px 0', cursor:'pointer'}}>
-             <span style={{fontSize:'1.5rem', background: status==='LISTENING'?'#dcfce7':'#f1f5f9', padding:10, borderRadius:'50%'}}>
-                 {status === "SPEAKING" ? "🔊" : "🎤"}
-             </span>
-             <p style={{margin:0, fontSize:'0.8rem', color:'#64748b'}}>{status === "LISTENING" ? "Listening..." : "Tap to Speak"}</p>
-          </div>
+          {status === "LISTENING" && (
+            <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 'bold', marginBottom: 15 }}>
+              🎤 {t('listening')}
+            </div>
+          )}
 
-          <div style={{display:'flex', gap:10}}>
-            <button onClick={() => setSelectedVehicle(null)} style={{flex:1, padding: 12, background: '#fee2e2', color:'red', borderRadius: 8, border:'none', cursor:'pointer'}}>Cancel</button>
-            <button onClick={finalizeBooking} className="app-btn btn-blue" style={{flex:2, background: '#22c55e'}}>✅ CONFIRM</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setSelectedVehicle(null)} style={{ flex: 1, padding: '15px', border: 'none', borderRadius: 15, background: '#fee2e2', color: '#ef4444' }}>Cancel</button>
+            <button onClick={finalizeBooking} style={{ ...bookBtnStyle, flex: 2 }}>
+              {status === "SEARCHING" ? "..." : t('confirm')}
+            </button>
           </div>
         </div>
       )}
 
-      {/* VEHICLE GRID */}
-      {!selectedVehicle && (
-        <div>
-            <div className="status-card" onClick={startListening} style={{cursor:'pointer', border: status === "LISTENING" ? '2px solid #22c55e' : '1px solid #e2e8f0', marginBottom:20}}>
-            <div className={`mic-icon ${status === "LISTENING" ? "active" : ""}`}>{status === "SPEAKING" ? "🔊" : "🎤"}</div>
-            <p style={{color:'var(--secondary)', margin:0, fontWeight:'bold'}}>{status === "LISTENING" ? t('listening') : transcript || t('speakNow')}</p>
-            </div>
-
-            <div className="btn-grid" style={{gridTemplateColumns:'1fr 1fr'}}>
-                <button className="app-btn btn-amber" onClick={() => handleVehicleSelect("Auto")}><span style={{fontSize:'1.5rem'}}>🛺</span> Auto</button>
-                <button className="app-btn btn-orange" onClick={() => handleVehicleSelect("Bike")}><span style={{fontSize:'1.5rem'}}>🛵</span> Bike</button>
-                <button className="app-btn btn-green" onClick={() => handleVehicleSelect("Bus")}><span style={{fontSize:'1.5rem'}}>🚌</span> Bus</button>
-                <button className="app-btn btn-blue" onClick={() => handleVehicleSelect("Train")}><span style={{fontSize:'1.5rem'}}>🚆</span> Train</button>
-            </div>
+      {/* RECENT RIDES HISTORY WITH CLEAR OPTION */}
+      <div style={{ marginTop: 30 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h3 style={{ color: '#475569', margin: 0 }}>Recent Rides</h3>
+          {bookings.length > 0 && (
+            <button onClick={clearHistory} style={clearBtnStyle}>🗑️ {t('clear')}</button>
+          )}
         </div>
-      )}
-
-      {/* HISTORY */}
-      <div style={{marginTop: 20}}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
-            <h3 style={{color: '#334155', margin:0}}>Recent Rides</h3>
-            {bookings.length > 0 && (<button onClick={clearHistory} style={{background:'#ef4444', color:'white', border:'none', padding:'5px 10px', borderRadius:5, cursor:'pointer', fontSize:'0.8rem'}}>🗑️ Clear</button>)}
-        </div>
-        {bookings.length === 0 && <p style={{color:'#64748b'}}>No recent rides found.</p>}
-        {bookings.map((b) => (
-          <div key={b._id} style={{background:'white', padding:15, borderRadius:12, marginBottom:10, borderLeft: b.status==='Accepted'?'5px solid #22c55e':'5px solid #f59e0b', boxShadow: '0 2px 5px rgba(0,0,0,0.05)'}}>
-            <div style={{fontWeight:'bold', fontSize:'1rem', color:'#1e293b'}}>{b.vehicleType}: {b.pickupLocation}</div>
-            <div style={{marginTop:8}}>
-                {b.status === "Pending" && <span style={{background:'#fef3c7', padding:'4px 10px', borderRadius:6, fontSize:'0.8rem', color:'#b45309'}}>⏳ Searching...</span>}
-                {b.status === "Accepted" && (<div style={{background:'#dcfce7', padding:10, borderRadius:8, marginTop:5}}><div style={{color:'#166534', fontWeight:'bold'}}>✅ Driver: {b.driverName}</div><div style={{color:'#15803d'}}>Vehicle: {b.vehicleNumber}</div><div style={{marginTop:5, fontSize:'1.1rem', fontWeight:'bold', color:'#2563eb'}}>OTP: {b.otp}</div></div>)}
-                {b.status === "In Progress" && <span style={{background:'#bfdbfe', padding:'4px 10px', borderRadius:6, fontSize:'0.8rem', fontWeight:'bold', color:'#1e40af'}}>🚀 ON THE WAY</span>}
-                {b.status === "Completed" && <span style={{background:'#f0fdf4', padding:'4px 10px', borderRadius:6, fontSize:'0.8rem', fontWeight:'bold', color:'#15803d'}}>🏁 COMPLETED</span>}
-            </div>
+        {bookings.length === 0 && <p style={{ color: '#94a3b8' }}>No recent rides found.</p>}
+        {bookings.slice(0, 3).map(b => (
+          <div key={b._id} style={{ background: 'white', padding: 15, borderRadius: 15, marginBottom: 10, borderLeft: '5px solid #3b82f6', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+            <div style={{ fontWeight: 'bold' }}>{b.vehicleType} • {b.status}</div>
+            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{b.pickupLocation}</div>
           </div>
         ))}
       </div>
@@ -275,4 +298,9 @@ export default function TravelPage() {
   );
 }
 
-const inputStyle = { width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ccc', fontSize: '1rem', outline:'none' };
+const backBtnStyle = { background: '#fff', border: '1px solid #e2e8f0', padding: '8px 15px', borderRadius: '12px', cursor: 'pointer' };
+const langBtnStyle = { background: '#f1f5f9', border: 'none', padding: '8px 15px', borderRadius: '12px', cursor: 'pointer', fontSize: '0.85rem' };
+const clearBtnStyle = { background: '#fee2e2', color: '#ef4444', border: 'none', padding: '5px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' };
+const labelStyle = { display: 'block', marginBottom: 8, fontWeight: 'bold', color: '#64748b', fontSize: '0.9rem' };
+const inputStyle = { width: '100%', padding: '18px', borderRadius: '15px', border: '2px solid #e2e8f0', fontSize: '1.1rem', outline: 'none', boxSizing: 'border-box', background: '#f8fafc' };
+const bookBtnStyle = { padding: '15px', borderRadius: '15px', background: '#22c55e', color: 'white', border: 'none', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer' };

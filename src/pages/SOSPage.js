@@ -4,28 +4,22 @@ import "../App.css";
 
 export default function SOSPage() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState("ACTIVATING"); // ACTIVATING -> SENT
+  const [status, setStatus] = useState("ACTIVATING");
   const [coords, setCoords] = useState(null);
   const [locationText, setLocationText] = useState("Fetching GPS...");
-  
-  // Hidden link reference
+
   const whatsappLinkRef = useRef(null);
 
-  // Session Data
   const guardianPhone = sessionStorage.getItem("viz_guardian_phone") || "";
   const userName = sessionStorage.getItem("viz_user_name") || "I";
 
-  // --- HELPER: GENERATE URL ---
   const getWhatsAppUrl = (lat, long) => {
     if (!guardianPhone) return "";
-    
-    let cleanNumber = guardianPhone.replace(/\D/g, ''); 
+    let cleanNumber = guardianPhone.replace(/\D/g, '');
     if (cleanNumber.length === 10) cleanNumber = "91" + cleanNumber;
 
-    // Google Maps Link
-    const mapLink = `http://maps.google.com/?q=${lat},${long}`;
+    const mapLink = `https://www.google.com/maps?q=${lat},${long}`;
     const message = `🚨 EMERGENCY! \n${userName} needs help!\n\n📍 Location: ${mapLink}`;
-
     return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
   };
 
@@ -33,13 +27,11 @@ export default function SOSPage() {
     const speak = (text) => {
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.0; u.pitch = 1.2;
       window.speechSynthesis.speak(u);
     };
 
-    speak(`Emergency Alert Activated. Sharing location.`);
+    speak("Emergency Alert Activated. Sharing your location in five seconds.");
 
-    // 1. GET GPS
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -47,71 +39,139 @@ export default function SOSPage() {
           setCoords({ lat: latitude, long: longitude });
           setLocationText(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         },
-        () => setLocationText("Unknown Location")
+        () => setLocationText("GPS Error")
       );
     }
 
-    // 2. AUTO-CLICK TIMER (5 Seconds)
-    const timer = setTimeout(() => {
-        if(whatsappLinkRef.current) {
-            speak("Opening WhatsApp now.");
-            // ⚡ THE TRICK: Programmatically click the hidden link
-            whatsappLinkRef.current.click(); 
-            setStatus("SENT");
-        }
-    }, 5000); 
+    const timer = setTimeout(async () => {
+      if (whatsappLinkRef.current) {
+        speak("Opening WhatsApp and initiating emergency call.");
+
+        // SOS 2.0: Trigger Twilio Call via Backend
+        try {
+          await fetch('http://127.0.0.1:5000/api/sos/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: guardianPhone, name: userName })
+          });
+        } catch (e) { console.error("Twilio Trigger Failed", e); }
+
+        whatsappLinkRef.current.click();
+        setStatus("SENT");
+      }
+    }, 5000);
 
     return () => clearTimeout(timer);
-  }, []); 
+  }, []);
 
   return (
-    <div className="app-container" style={{background: '#ef4444', justifyContent: 'center', textAlign: 'center'}}>
-      
-      <div style={{fontSize: '5rem', marginBottom: 10, animation: 'pulse 1s infinite'}}>🚨</div>
-      <h1 style={{color: 'white', fontSize: '2.5rem', margin: 0}}>EMERGENCY</h1>
-      <p style={{color: '#fecaca', marginBottom: 30}}>SOS Mode Active</p>
+    <div style={styles.container}>
+      {/* ANIMATED BACKGROUND RING */}
+      <div style={styles.pulseRing}></div>
 
-      <div style={{background: 'rgba(0,0,0,0.2)', padding: 25, borderRadius: 16, border: '1px solid rgba(255,255,255,0.3)'}}>
-        <h2 style={{margin: 0, color: 'white'}}>
-            {status === "ACTIVATING" ? "Redirecting in 5s..." : "✅ OPENING..."}
-        </h2>
-        <div style={{marginTop: 15, color: 'white', textAlign: 'left'}}>
-            <strong>To:</strong> {guardianPhone || "Not Set"} <br/>
-            <strong>Loc:</strong> {locationText}
+      <div style={styles.content}>
+        <div style={styles.icon}>🚨</div>
+        <h1 style={styles.title}>EMERGENCY</h1>
+        <p style={styles.subtitle}>Alerting your guardian immediately</p>
+
+        <div style={styles.statusBox}>
+          <div style={styles.statusRow}>
+            <span style={styles.label}>Guardian:</span>
+            <span style={styles.value}>{guardianPhone || "Not Set"}</span>
+          </div>
+          <div style={styles.statusRow}>
+            <span style={styles.label}>Location:</span>
+            <span style={styles.value}>{locationText}</span>
+          </div>
+          <div style={styles.progressBar}>
+            <div style={{ ...styles.progressFill, width: status === "SENT" ? "100%" : "50%" }}></div>
+          </div>
+          <p style={styles.statusText}>
+            {status === "ACTIVATING" ? "Redirecting to WhatsApp..." : "✅ Redirect Triggered"}
+          </p>
         </div>
-      </div>
 
-      {/* 🕵️ HIDDEN LINK FOR AUTO-CLICK */}
-      <a 
+        {/* HIDDEN LINK */}
+        <a
           ref={whatsappLinkRef}
-          href={coords ? getWhatsAppUrl(coords.lat, coords.long) : getWhatsAppUrl(0, 0)}
-          style={{display: 'none'}}
+          href={coords ? getWhatsAppUrl(coords.lat, coords.long) : "#"}
+          style={{ display: 'none' }}
           target="_blank"
           rel="noopener noreferrer"
-      >
-          Hidden Auto Link
-      </a>
+        >Link</a>
 
-      {/* FALLBACK BUTTON */}
-      <button 
-          onClick={() => whatsappLinkRef.current.click()}
-          style={{
-            marginTop: 20, padding: '20px 30px', width: '100%',
-            background: 'white', color: '#dc2626', border: 'none', 
-            borderRadius: 12, fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.2)'
-          }}
-        >
-          📤 CLICK IF NOT OPENING
+        <button onClick={() => navigate("/home")} style={styles.cancelBtn}>
+          ❌ CANCEL ALERT
         </button>
-
-      <button 
-        onClick={() => navigate("/home")} 
-        style={{marginTop: 20, padding: '15px 30px', borderRadius: 50, border: '2px solid white', background: 'transparent', color: 'white', fontWeight: 'bold', cursor: 'pointer'}}
-      >
-        ❌ CANCEL
-      </button>
-
+      </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    height: '100vh',
+    background: '#7f1d1d', // Deep red
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'white',
+    fontFamily: 'system-ui',
+    overflow: 'hidden',
+    position: 'relative'
+  },
+  content: {
+    textAlign: 'center',
+    zIndex: 2,
+    padding: '20px',
+    width: '100%',
+    maxWidth: '400px'
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: '300px',
+    height: '300px',
+    borderRadius: '50%',
+    background: 'rgba(239, 68, 68, 0.4)',
+    animation: 'pulse-red 2s infinite'
+  },
+  icon: { fontSize: '5rem', marginBottom: '10px' },
+  title: { fontSize: '2.5rem', fontWeight: '900', margin: 0, letterSpacing: '2px' },
+  subtitle: { opacity: 0.8, marginBottom: '40px' },
+  statusBox: {
+    background: 'rgba(0,0,0,0.3)',
+    borderRadius: '24px',
+    padding: '25px',
+    textAlign: 'left',
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.1)'
+  },
+  statusRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
+  label: { color: '#fca5a5', fontWeight: 'bold' },
+  value: { fontWeight: '500' },
+  progressBar: {
+    height: '8px',
+    background: 'rgba(255,255,255,0.1)',
+    borderRadius: '10px',
+    marginTop: '20px',
+    overflow: 'hidden'
+  },
+  progressFill: {
+    height: '100%',
+    background: '#ef4444',
+    transition: 'width 5s linear'
+  },
+  statusText: { textAlign: 'center', marginTop: '10px', fontSize: '0.8rem', fontWeight: 'bold' },
+  cancelBtn: {
+    marginTop: '40px',
+    background: 'white',
+    color: '#7f1d1d',
+    border: 'none',
+    padding: '15px 40px',
+    borderRadius: '50px',
+    fontWeight: 'bold',
+    fontSize: '1rem',
+    cursor: 'pointer',
+    boxShadow: '0 10px 15px rgba(0,0,0,0.2)'
+  }
+};
