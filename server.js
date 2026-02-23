@@ -1,232 +1,216 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
-const PORT = 5000; // ✅ Running on Port 5000
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
+const PORT = 5000;
 
-// --- MIDDLEWARE ---
-app.use(cors()); // Allows Frontend (Port 3000) to talk to Backend
+app.use(cors());
 app.use(express.json());
 
-// --- DATABASE CONNECTION ---
-// Replace with your actual connection string
 const MONGO_URI = "mongodb+srv://sanjay:sanjay123@cluster0.9sxfjed.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected Successfully!"))
-    .catch((err) => console.log("❌ DB Connection Error:", err.message));
+    .catch((err) => console.log("❌ DB Error:", err.message));
 
-// ==========================
-//        SCHEMAS
-// ==========================
-
-// 1. USER
-const UserSchema = new mongoose.Schema({
-    name: String,
-    phone: String,
-    createdAt: { type: Date, default: Date.now }
-});
+// --- SCHEMAS ---
+const UserSchema = new mongoose.Schema({ name: String, phone: String, createdAt: { type: Date, default: Date.now } });
+UserSchema.index({ phone: 1 });
 const User = mongoose.model("User", UserSchema);
 
-// 2. DRIVER
-const DriverSchema = new mongoose.Schema({
-    name: String,
-    phone: String,
-    vehicleType: String,
-    vehicleNumber: String,
-    status: { type: String, default: "Available" },
-    createdAt: { type: Date, default: Date.now }
-});
+const DriverSchema = new mongoose.Schema({ name: String, phone: String, vehicleType: String, vehicleNumber: String, status: { type: String, default: "Available" }, wallet: { type: Number, default: 0 }, createdAt: { type: Date, default: Date.now } });
+DriverSchema.index({ phone: 1 });
 const Driver = mongoose.model("Driver", DriverSchema);
 
-// 3. RIDE REQUEST (With OTP & Driver Info)
 const RideSchema = new mongoose.Schema({
-    riderName: String,
-    riderPhone: String,
-    vehicleType: String,
-    pickupLocation: String,
-    status: { type: String, default: "Pending" }, // Pending, Accepted, In Progress, Completed
-    
-    // Driver Details (Filled when accepted)
-    driverId: String,
-    driverName: String,      
-    vehicleNumber: String,
-    
-    // Security
-    otp: String,            // 4-Digit Code
-    createdAt: { type: Date, default: Date.now }
-});
+    riderName: String, riderPhone: String, vehicleType: String, pickupLocation: String, otp: String,
+    driverId: String, driverName: String, vehicleNumber: String,
+    fare: { type: Number, default: 0 }, distance: { type: Number, default: 2 },
+    status: { type: String, default: "Pending" }
+}, { timestamps: true }); // ✅ Fixes "Invalid Date"
+RideSchema.index({ status: 1 });
+RideSchema.index({ driverId: 1, status: 1 });
+RideSchema.index({ riderPhone: 1 });
+
 const Ride = mongoose.model("Ride", RideSchema);
 
-// 4. INCIDENT (SOS)
-const IncidentSchema = new mongoose.Schema({
-    userName: String,
-    guardianPhone: String,
-    location: String,
-    status: { type: String, default: "Active" },
-    timestamp: { type: Date, default: Date.now }
+// --- UTILS ---
+const calculateFare = (vehicleType) => {
+    // Generate a consistent distance for this specific calculation session
+    const distKm = parseFloat((Math.random() * 8 + 2).toFixed(1));
+    const baseRates = { 'Auto': 30, 'Bike': 15, 'Bus': 10, 'Train': 10 };
+    const perKmRates = { 'Auto': 15, 'Bike': 8, 'Bus': 5, 'Train': 5 };
+
+    const base = baseRates[vehicleType] || 30;
+    const rate = perKmRates[vehicleType] || 15;
+    const fare = Math.round(base + (distKm * rate));
+
+    return { fare, distance: distKm };
+};
+
+// Simulated OTP Store
+const otpStore = {}; // { phone: otp }
+
+// --- SOCKET LOGIC ---
+io.on('connection', (socket) => {
+    console.log('👤 User connected:', socket.id);
+    socket.on('join_driver_pool', (vehicleType) => {
+        socket.join(`pool_${vehicleType}`);
+        console.log(`Driver joined ${vehicleType} pool`);
+    });
 });
-const Incident = mongoose.model("Incident", IncidentSchema);
 
-// ==========================
-//         ROUTES
-// ==========================
+// --- ROUTES ---
 
-app.get('/', (req, res) => res.send("🚀 Vizhithiru Server Running"));
+app.post('/api/auth/send-otp', (req, res) => {
+    const { phone } = req.body;
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    otpStore[phone] = otp;
 
-// --- AUTHENTICATION ---
+    console.log(`🔐 [AUTH] OTP for ${phone}: ${otp}`);
+    res.json({ success: true, message: "OTP sent successfully" });
+});
 
-// User Login
+app.post('/api/auth/verify-otp', (req, res) => {
+    const { phone, otp } = req.body;
+    if (otpStore[phone] === otp) {
+        delete otpStore[phone]; // Clear after use
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ success: false, error: "Invalid OTP" });
+    }
+});
+
 app.post('/api/login', async (req, res) => {
     const { name, phone } = req.body;
     try {
-        let user = await User.findOne({ phone });
-        if (!user) {
-            user = new User({ name, phone });
-            await user.save();
-        }
-        console.log(`📥 Login: ${name} (${phone})`);
+        let user = await User.findOneAndUpdate({ phone }, { name }, { upsert: true, new: true });
         res.json({ success: true, user });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// Driver Login
 app.post('/api/driver/login', async (req, res) => {
     const { name, phone, vehicleType, vehicleNumber } = req.body;
     try {
-        let driver = await Driver.findOne({ phone });
-        if (!driver) {
-            driver = new Driver({ name, phone, vehicleType, vehicleNumber });
-            await driver.save();
-        }
-        console.log(`🚖 Driver Login: ${name}`);
+        let driver = await Driver.findOneAndUpdate({ phone }, { name, vehicleType, vehicleNumber }, { upsert: true, new: true });
         res.json({ success: true, driver });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// --- RIDE MANAGEMENT ---
-
-// 1. Request a Ride (User)
 app.post('/api/ride/request', async (req, res) => {
-    const { riderName, riderPhone, vehicleType, pickupLocation, otp } = req.body;
-    console.log(`🚖 Request: ${vehicleType} for ${riderName} (OTP: ${otp})`);
     try {
-        const newRide = new Ride({ riderName, riderPhone, vehicleType, pickupLocation, otp });
+        const { fare, distance } = calculateFare(req.body.vehicleType);
+        const newRide = new Ride({ ...req.body, fare, distance });
         await newRide.save();
-        res.json({ success: true, rideId: newRide._id });
+
+        // Notify drivers in the pool
+        io.to(`pool_${req.body.vehicleType}`).emit('new_ride_request', newRide);
+
+        res.json({ success: true, rideId: newRide._id, fare, distance });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// 2. Get Pending Rides (Driver) - AUTOMATIC CLEANUP (Last 1 Hour Only)
 app.get('/api/ride/pending', async (req, res) => {
     try {
-        // Only show rides created in the last 60 minutes
-        const timeLimit = new Date(Date.now() - 60 * 60 * 1000);
-
-        const rides = await Ride.find({ 
-            status: "Pending", 
-            createdAt: { $gte: timeLimit } 
-        }).sort({ createdAt: -1 });
-
+        // Only show rides that haven't been accepted yet
+        const rides = await Ride.find({ status: "Pending" }).sort({ createdAt: -1 });
         res.json({ success: true, rides });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// 3. Accept Ride (Driver)
 app.post('/api/ride/accept', async (req, res) => {
-    const { rideId, driverId, driverName, vehicleNumber } = req.body;
-    console.log(`✅ Ride accepted by ${driverName}`);
     try {
-        await Ride.findByIdAndUpdate(rideId, { 
-            status: "Accepted", 
-            driverId, 
-            driverName, 
-            vehicleNumber 
-        });
+        const { rideId, driverId, driverName, vehicleNumber } = req.body;
+        const ride = await Ride.findByIdAndUpdate(rideId, { status: "Accepted", driverId, driverName, vehicleNumber }, { new: true });
+
+        // Notify rider
+        io.emit(`ride_update_${rideId}`, { status: "Accepted", driverName, vehicleNumber });
+        // Notify other drivers to remove it from their lists
+        io.emit('ride_taken', { rideId });
+
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: "Update Error" }); }
 });
 
-// 4. Verify OTP & Start Ride (Driver)
-app.post('/api/ride/verify', async (req, res) => {
-    const { rideId, enteredOtp } = req.body;
+// ✅ DRIVER HISTORY: Strictly by Driver ID
+app.get('/api/ride/driver-history/:driverId', async (req, res) => {
     try {
-        const ride = await Ride.findById(rideId);
-        if (ride && ride.otp === enteredOtp) {
-            ride.status = "In Progress";
-            await ride.save();
-            res.json({ success: true, message: "OTP Verified! Ride Started." });
-        } else {
-            res.json({ success: false, message: "Wrong OTP!" });
-        }
-    } catch (e) { res.status(500).json({ error: "DB Error" }); }
-});
-
-// 5. Check Ride Status (User Polling)
-app.get('/api/ride/status/:id', async (req, res) => {
-    try {
-        const ride = await Ride.findById(req.params.id);
-        if(ride) res.json({ success: true, ride });
-        else res.json({ success: false });
-    } catch (e) { res.status(500).json({ error: "Error" }); }
-});
-
-// 6. Get User History (By Phone)
-app.get('/api/ride/history/:phone', async (req, res) => {
-    const { phone } = req.params;
-    try {
-        const history = await Ride.find({ riderPhone: phone }).sort({ createdAt: -1 });
+        const history = await Ride.find({ driverId: req.params.driverId, status: "Completed" }).sort({ updatedAt: -1 });
         res.json({ success: true, history });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// --- EMERGENCY ---
-
-app.post('/api/sos', async (req, res) => {
-    const { userName, guardianPhone, location } = req.body;
+// ✅ USER HISTORY: Strictly by Rider Phone
+app.get('/api/ride/history/:phone', async (req, res) => {
     try {
-        const newIncident = new Incident({ userName, guardianPhone, location });
-        await newIncident.save();
-        console.log(`🚨 SOS ALERT from ${userName}`);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: "SOS Error" }); }
-});
-
-// --- DEBUGGING & CLEANUP ---
-
-// View All Users
-app.get('/api/users/all', async (req, res) => {
-    const users = await User.find();
-    res.json(users);
-});
-
-// 🏁 DRIVER: COMPLETE RIDE
-app.post('/api/ride/complete', async (req, res) => {
-    const { rideId } = req.body;
-    try {
-        await Ride.findByIdAndUpdate(rideId, { status: "Completed" });
-        res.json({ success: true, message: "Ride Completed!" });
+        const history = await Ride.find({ riderPhone: req.params.phone }).sort({ createdAt: -1 });
+        res.json({ success: true, history });
     } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// Clear All Rides (Use this to clean your database)
-app.get('/api/nuke/rides', async (req, res) => {
-    await Ride.deleteMany({});
-    res.send("💥 All ride history has been deleted. Fresh start!");
-});
-
-// 🗑️ USER: CLEAR MY HISTORY
-app.delete('/api/ride/clear/:phone', async (req, res) => {
-    const { phone } = req.params;
+app.post('/api/ride/complete', async (req, res) => {
     try {
-        // Delete all rides associated with this phone number
-        await Ride.deleteMany({ riderPhone: phone });
-        res.json({ success: true, message: "History Cleared" });
-    } catch (e) { 
-        res.status(500).json({ error: "DB Error" }); 
-    }
+        const { rideId } = req.body;
+        const ride = await Ride.findByIdAndUpdate(rideId, { status: "Completed" }, { new: true });
+
+        // Update Driver Wallet
+        if (ride.driverId && ride.fare) {
+            await Driver.findByIdAndUpdate(ride.driverId, { $inc: { wallet: ride.fare } });
+        }
+
+        io.emit(`ride_update_${rideId}`, { status: "Completed" });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
 });
 
-// --- START SERVER ---
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+// ✅ GET ACTIVE RIDE FOR DRIVER (Session Restoration)
+app.get('/api/ride/active-driver/:driverId', async (req, res) => {
+    try {
+        const ride = await Ride.findOne({
+            driverId: req.params.driverId,
+            status: { $in: ["Accepted", "Arrived", "In Progress"] }
+        });
+        res.json({ success: true, ride });
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
+// ✅ UPDATE RIDE STATUS (Generic)
+app.post('/api/ride/update-status', async (req, res) => {
+    try {
+        const { rideId, status } = req.body;
+        const ride = await Ride.findByIdAndUpdate(rideId, { status }, { new: true });
+
+        // Notify rider
+        io.emit(`ride_update_${rideId}`, { status });
+
+        res.json({ success: true, ride });
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
+// ✅ GET ACTIVE RIDE FOR USER (Session Restoration & OTP Persistence)
+app.get('/api/ride/active-user/:phone', async (req, res) => {
+    try {
+        const ride = await Ride.findOne({
+            riderPhone: req.params.phone,
+            status: { $in: ["Pending", "Accepted", "Arrived", "In Progress"] }
+        }).sort({ createdAt: -1 }); // Get most recent active
+        res.json({ success: true, ride });
+    } catch (e) { res.status(500).json({ error: "DB Error" }); }
+});
+
+// --- SOS 2.0 ---
+app.post('/api/sos/call', async (req, res) => {
+    const { phone, name } = req.body;
+    console.log(`🚨 SOS Call requested for ${name} to ${phone}`);
+    // Simulate Twilio call setup
+    // const client = require('twilio')(accountSid, authToken);
+    // client.calls.create({ url: 'http://demo.twilio.com/docs/voice.xml', to: phone, from: '+123456789' });
+    res.json({ success: true, message: "Emergency call initiated (Simulated)" });
+});
+
+server.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
